@@ -19,10 +19,29 @@ public class PubSub {
 	public static void main(String[] args) {
 		Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
 
-		Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
-		Publisher<Integer> map2Pub = mapPub(mapPub, s -> -s);
+		Publisher<Integer> sumPub = sumPub(pub);
+		sumPub.subscribe(logSub()); // 계산이 완료됬을때만 출력
+	}
 
-		map2Pub.subscribe(logSub());
+	private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
+		return new Publisher<Integer>() {
+			@Override
+			public void subscribe(Subscriber<? super Integer> s) {
+				pub.subscribe(new DelegateSub(s) {
+					int sum = 0;
+					@Override
+					public void onNext(Integer integer) {
+						sum += integer;
+					}
+
+					@Override
+					public void onComplete() {
+						s.onNext(sum);
+						s.onComplete();
+					}
+				});
+			}
+		};
 	}
 
 	private static Publisher<Integer> mapPub(Publisher<Integer> pub, Function<Integer, Integer> func) {
