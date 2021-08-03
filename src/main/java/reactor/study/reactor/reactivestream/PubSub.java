@@ -19,15 +19,15 @@ import java.util.stream.Stream;
 public class PubSub {
 	public static void main(String[] args) {
 		Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-		Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
+		Publisher<String> mapPub = mapPub(pub, s -> "[" + s + "]");
 		mapPub.subscribe(logSub()); //
 	}
 
-	private static <T> Publisher<T> mapPub(Publisher<T> pub, Function<T, T> func) {
-		return new Publisher<T>() {
+	private static <T, R> Publisher<R> mapPub(Publisher<T> pub, Function<T, R> func) {
+		return new Publisher<R>() {
 			@Override
-			public void subscribe(Subscriber<? super T> sub) {
-				pub.subscribe(new DelegateSub<T>(sub) {
+			public void subscribe(Subscriber<? super R> sub) {
+				pub.subscribe(new DelegateSub<T, R>(sub) {
 					@Override
 					public void onNext(T integer) {
 						sub.onNext(func.apply(integer));
