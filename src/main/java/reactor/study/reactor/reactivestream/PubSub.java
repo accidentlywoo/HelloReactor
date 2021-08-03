@@ -11,44 +11,30 @@ import java.util.stream.Stream;
 
 /**
  * Publisher -> [Data1] -> Operator1 -> [Data2] -> Operator2 -> Subscriber
- *
- *  1. map (data1 -> function -> data2)
+ * <p>
+ * 1. map (data1 -> function -> data2)
  */
 @Slf4j
 public class PubSub {
 	public static void main(String[] args) {
 		Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
 
-		Publisher<Integer> mapPub = mapPub(pub,(Function<Integer, Integer>) s -> s * 10);
+		Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
+		Publisher<Integer> map2Pub = mapPub(mapPub, s -> -s);
 
-		mapPub.subscribe(logSub());
+		map2Pub.subscribe(logSub());
 	}
 
 	private static Publisher<Integer> mapPub(Publisher<Integer> pub, Function<Integer, Integer> func) {
 		return new Publisher<Integer>() {
 			@Override
 			public void subscribe(Subscriber<? super Integer> sub) {
-					pub.subscribe(new Subscriber<Integer>() {
-						@Override
-						public void onSubscribe(Subscription s) {
-							sub.onSubscribe(s);
-						}
-
-						@Override
-						public void onNext(Integer integer) {
-							sub.onNext(func.apply(integer));
-						}
-
-						@Override
-						public void onError(Throwable t) {
-							sub.onError(t);
-						}
-
-						@Override
-						public void onComplete() {
-							sub.onComplete();
-						}
-					});
+				pub.subscribe(new DelegateSub(sub) {
+					@Override
+					public void onNext(Integer integer) {
+						sub.onNext(func.apply(integer));
+					}
+				});
 			}
 		};
 	}
@@ -80,7 +66,7 @@ public class PubSub {
 		return sub;
 	}
 
-	private static Publisher<Integer> iterPub(Iterable<Integer> iter){
+	private static Publisher<Integer> iterPub(Iterable<Integer> iter) {
 		return new Publisher<Integer>() {
 
 			@Override
