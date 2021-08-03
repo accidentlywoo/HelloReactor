@@ -18,7 +18,7 @@ import java.util.stream.Stream;
 public class PubSub {
 	public static void main(String[] args) {
 		Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-		Publisher<String> reducePub = reducePub(pub, "", (BiFunction<String, Integer, String>) (a, b) -> a +"-"+ b);
+		Publisher<StringBuilder> reducePub = reducePub(pub, new StringBuilder(), (a, b) -> a.append(b+", "));
 		reducePub.subscribe(logSub());
 	}
 
