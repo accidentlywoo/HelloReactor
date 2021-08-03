@@ -19,61 +19,17 @@ import java.util.stream.Stream;
 public class PubSub {
 	public static void main(String[] args) {
 		Publisher<Integer> pub = iterPub(Stream.iterate(1, a -> a + 1).limit(10).collect(Collectors.toList()));
-
-		Publisher<Integer> reducePub = reducePub(pub, 0, (BiFunction<Integer, Integer, Integer>)(a, b) -> a + b);
-		reducePub.subscribe(logSub()); //
+		Publisher<Integer> mapPub = mapPub(pub, s -> s * 10);
+		mapPub.subscribe(logSub()); //
 	}
 
-	private static Publisher<Integer> reducePub(Publisher<Integer> pub, int init, BiFunction<Integer, Integer, Integer> bf) {
-		return new Publisher<Integer>() {
+	private static <T> Publisher<T> mapPub(Publisher<T> pub, Function<T, T> func) {
+		return new Publisher<T>() {
 			@Override
-			public void subscribe(Subscriber<? super Integer> s) {
-				pub.subscribe(new DelegateSub(s) {
-					int result = init;
-
+			public void subscribe(Subscriber<? super T> sub) {
+				pub.subscribe(new DelegateSub<T>(sub) {
 					@Override
-					public void onNext(Integer integer) {
-						result = bf.apply(result, integer);
-					}
-
-					@Override
-					public void onComplete() {
-						s.onNext(result);
-						s.onComplete();
-					}
-				});
-			}
-		};
-	}
-
-	private static Publisher<Integer> sumPub(Publisher<Integer> pub) {
-		return new Publisher<Integer>() {
-			@Override
-			public void subscribe(Subscriber<? super Integer> s) {
-				pub.subscribe(new DelegateSub(s) {
-					int sum = 0;
-					@Override
-					public void onNext(Integer integer) {
-						sum += integer;
-					}
-
-					@Override
-					public void onComplete() {
-						s.onNext(sum);
-						s.onComplete();
-					}
-				});
-			}
-		};
-	}
-
-	private static Publisher<Integer> mapPub(Publisher<Integer> pub, Function<Integer, Integer> func) {
-		return new Publisher<Integer>() {
-			@Override
-			public void subscribe(Subscriber<? super Integer> sub) {
-				pub.subscribe(new DelegateSub(sub) {
-					@Override
-					public void onNext(Integer integer) {
+					public void onNext(T integer) {
 						sub.onNext(func.apply(integer));
 					}
 				});
@@ -81,8 +37,8 @@ public class PubSub {
 		};
 	}
 
-	private static Subscriber<Integer> logSub() {
-		Subscriber<Integer> sub = new Subscriber<Integer>() {
+	private static <T> Subscriber<T> logSub() {
+		Subscriber<T> sub = new Subscriber<T>() {
 			// Publisher를 아래 4가지 메소드를 통해서 구독
 			@Override
 			public void onSubscribe(Subscription s) {
@@ -91,8 +47,8 @@ public class PubSub {
 			}
 
 			@Override
-			public void onNext(Integer integer) { // 정상
-				log.debug("onNext: {}", integer);
+			public void onNext(T t) { // 정상
+				log.debug("onNext: {}", t);
 			}
 
 			@Override
