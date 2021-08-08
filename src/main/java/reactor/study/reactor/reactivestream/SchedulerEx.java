@@ -31,16 +31,8 @@ public class SchedulerEx {
 			});
 		};
 
-		Publisher<Integer> subOnPub = sub -> {
-			ExecutorService es = Executors.newSingleThreadExecutor(new CustomizableThreadFactory(){ // Spring에서 ThreadFactory를 쉽게 사용하게 제공해주는..친구.
-				@Override
-				public String getThreadNamePrefix() { return "subOn-"; }
-			});
-			es.execute(() ->pub.subscribe(sub));
-		};
-
 		Publisher<Integer> pubOnPub = sub -> {
-			subOnPub.subscribe(new Subscriber<Integer>() {
+			pub.subscribe(new Subscriber<Integer>() {
 				ExecutorService es = Executors.newSingleThreadExecutor(new CustomizableThreadFactory(){
 					@Override
 					public String getThreadNamePrefix() { return "pubOn-"; }
@@ -59,11 +51,13 @@ public class SchedulerEx {
 				@Override
 				public void onError(Throwable t) {
 					es.execute(() -> sub.onError(t));
+					es.shutdown();
 				}
 
 				@Override
 				public void onComplete() {
 					es.execute(() -> sub.onComplete());
+					es.shutdown();
 				}
 			});
 		};
