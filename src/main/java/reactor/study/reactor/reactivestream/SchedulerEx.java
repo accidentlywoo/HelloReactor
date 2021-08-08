@@ -30,14 +30,35 @@ public class SchedulerEx {
 			});
 		};
 
-		Publisher<Integer> subOnPub = sub -> {
-			ExecutorService es = Executors.newSingleThreadExecutor();
-			es.execute(() ->pub.subscribe(sub));
+		Publisher<Integer> pubOnPub = sub -> {
+			pub.subscribe(new Subscriber<Integer>() {
+				ExecutorService es = Executors.newSingleThreadExecutor();
+				// Subscriber가 넘어오는 데이터를 consum하는데 상대적으로 느린경우
+				@Override
+				public void onSubscribe(Subscription s) {
+					sub.onSubscribe(s);
+				}
+
+				@Override
+				public void onNext(Integer integer) {
+					es.execute(() -> sub.onNext(integer));
+				}
+
+				@Override
+				public void onError(Throwable t) {
+					es.execute(() -> sub.onError(t));
+				}
+
+				@Override
+				public void onComplete() {
+					es.execute(() -> sub.onComplete());
+				}
+			});
 		};
 
 		// sub
 
-		subOnPub.subscribe(new Subscriber<Integer>() {
+		pubOnPub.subscribe(new Subscriber<Integer>() {
 			@Override
 			public void onSubscribe(Subscription s) {
 				log.info("onSubscribe");
